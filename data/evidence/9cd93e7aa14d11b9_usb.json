@@ -1,0 +1,1 @@
+[{"event_id": "EVT-002", "evidence_id": "EV-002", "case_id": "CASE-001", "timestamp": "2026-09-10T09:48:00Z", "actor": "employee_a", "device": "laptop-01", "action": "usb_connect", "object": "usb-device-9", "location": "Mumbai", "source": "usb", "confidence": 1.0}]

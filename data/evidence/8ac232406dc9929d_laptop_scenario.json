@@ -1,0 +1,9 @@
+[
+  {"event_id": "EVT-001", "evidence_id": "EV-001", "case_id": "CASE-001", "timestamp": "2026-09-10T09:42:00Z", "actor": "employee_a", "device": "laptop-01", "action": "login", "object": null, "location": "Mumbai", "source": "laptop", "confidence": 1.0},
+  {"event_id": "EVT-002", "evidence_id": "EV-002", "case_id": "CASE-001", "timestamp": "2026-09-10T09:48:00Z", "actor": "employee_a", "device": "laptop-01", "action": "usb_connect", "object": "usb-device-9", "location": "Mumbai", "source": "usb", "confidence": 1.0},
+  {"event_id": "EVT-003", "evidence_id": "EV-003", "case_id": "CASE-001", "timestamp": "2026-09-10T09:51:00Z", "actor": "employee_a", "device": "laptop-01", "action": "file_access", "object": "confidential.pdf", "location": "Mumbai", "source": "laptop", "confidence": 1.0},
+  {"event_id": "EVT-004", "evidence_id": "EV-004", "case_id": "CASE-001", "timestamp": "2026-09-10T09:58:00Z", "actor": "employee_a", "device": "laptop-01", "action": "archive_create", "object": "archive.zip", "location": "Mumbai", "source": "laptop", "confidence": 1.0},
+  {"event_id": "EVT-005", "evidence_id": "EV-005", "case_id": "CASE-001", "timestamp": "2026-09-10T10:04:00Z", "actor": "employee_a", "device": "laptop-01", "action": "network_connect", "object": "203.0.113.5", "location": "Mumbai", "source": "network", "confidence": 1.0},
+  {"event_id": "EVT-006", "evidence_id": "EV-006", "case_id": "CASE-001", "timestamp": "2026-09-10T10:09:00Z", "actor": "employee_a", "device": "laptop-01", "action": "email_sent", "object": "external@example.com", "location": "Mumbai", "source": "email", "confidence": 1.0},
+  {"event_id": "EVT-007", "evidence_id": "EV-007", "case_id": "CASE-001", "timestamp": "2026-09-10T10:09:00Z", "actor": "employee_a", "device": "phone-01", "action": "gps_ping", "object": null, "location": "Delhi", "source": "phone", "confidence": 1.0}
+]

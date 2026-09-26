@@ -24,3 +24,6 @@ build/
 # OS
 .DS_Store
 Thumbs.db
+# Local databases
+*.db
+*.db-journal
