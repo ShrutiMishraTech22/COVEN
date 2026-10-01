@@ -1,12 +1,21 @@
 """
-Seed reproducible demo data for COVEN.
+COVEN demo data utilities.
 
-Run from the project root:
+This script provides two seed workflows:
 
-    python scripts/seed_demo_data.py
+1. seed_local_demo()
+   Creates the deterministic CASE-DEMO-001 dataset directly in SQLite.
 
-The script is idempotent: running it again replaces only the
-records belonging to CASE-DEMO-001.
+2. upload_source_datasets()
+   Uploads the per-source synthetic datasets to a running COVEN backend.
+
+Run from the project root.
+
+Local SQLite seed:
+    python scripts/seed_demo_data.py local
+
+API upload:
+    python scripts/seed_demo_data.py upload
 """
 
 import json
@@ -14,9 +23,13 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+import requests
 
-# Allow imports from backend/app when this script is run from the
-# project root.
+
+# ---------------------------------------------------------------------------
+# Project paths
+# ---------------------------------------------------------------------------
+
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 BACKEND_DIR = PROJECT_ROOT / "backend"
 
@@ -24,118 +37,99 @@ if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
 
-from app.db import SessionLocal, init_db
-from app.models.case import Case
-from app.models.evidence import Evidence
-from app.models.event import Event
+# ---------------------------------------------------------------------------
+# API upload configuration
+# ---------------------------------------------------------------------------
+
+BASE_URL = "http://localhost:8000/api"
+SYNTHETIC_DIR = PROJECT_ROOT / "data" / "synthetic"
+
+SOURCE_FILES = {
+    "laptop": "laptop.json",
+    "usb": "usb.json",
+    "network": "network.json",
+    "email": "email.json",
+    "phone": "phone.json",
+}
 
 
-CASE_ID = "CASE-DEMO-001"
-EVIDENCE_ID = "EV-DEMO-001"
+# ---------------------------------------------------------------------------
+# Local deterministic demo seed
+# ---------------------------------------------------------------------------
 
-EVENT_IDS = [
-    "EVT-DEMO-001",
-    "EVT-DEMO-002",
-    "EVT-DEMO-003",
-]
+def seed_local_demo():
+    """
+    Seed the deterministic CASE-DEMO-001 dataset directly into SQLite.
 
-
-def seed_demo_data():
-    init_db()
+    The seed is idempotent: records belonging to CASE-DEMO-001 are removed
+    before being recreated.
+    """
+    from app.db import SessionLocal
+    from app.models.case import Case
+    from app.models.evidence import Evidence
+    from app.models.event import Event
 
     db = SessionLocal()
 
     try:
-        # ---------------------------------------------------------
-        # 1. Remove only previously seeded demo records
-        # ---------------------------------------------------------
+        case_id = "CASE-DEMO-001"
+        evidence_id = "EV-DEMO-001"
 
-        db.query(Event).filter(
-            Event.event_id.in_(EVENT_IDS)
-        ).delete(synchronize_session=False)
-
-        db.query(Evidence).filter(
-            Evidence.evidence_id == EVIDENCE_ID
-        ).delete(synchronize_session=False)
-
-        db.query(Case).filter(
-            Case.case_id == CASE_ID
-        ).delete(synchronize_session=False)
-
-        db.commit()
-
-        # ---------------------------------------------------------
-        # 2. Create demo case
-        # ---------------------------------------------------------
-
-        demo_case = Case(
-            case_id=CASE_ID,
-            name="Data Exfiltration Investigation",
-            investigator="COVEN Demo Investigator",
-            description=(
-                "Demo investigation showing evidence ingestion, "
-                "event extraction, timeline reconstruction, "
-                "graph relationships, findings, and hypotheses."
-            ),
-            created_at=datetime.fromisoformat(
-                "2026-09-28T10:00:00"
-            ),
+        # Remove existing demo records first.
+        db.query(Event).filter(Event.case_id == case_id).delete(
+            synchronize_session=False
+        )
+        db.query(Evidence).filter(Evidence.case_id == case_id).delete(
+            synchronize_session=False
+        )
+        db.query(Case).filter(Case.case_id == case_id).delete(
+            synchronize_session=False
         )
 
-        db.add(demo_case)
+        now = datetime.utcnow()
 
-        # ---------------------------------------------------------
-        # 3. Create demo evidence
-        # ---------------------------------------------------------
+        case = Case(
+            case_id=case_id,
+            name="Data Exfiltration Investigation",
+            investigator="COVEN Demo Investigator",
+            description="Synthetic demo investigation for COVEN.",
+            created_at=now,
+        )
+        db.add(case)
 
-        demo_evidence = Evidence(
-            evidence_id=EVIDENCE_ID,
-            case_id=CASE_ID,
+        evidence = Evidence(
+            evidence_id=evidence_id,
+            case_id=case_id,
             source="WORKSTATION_01",
             type="log",
             original_filename="workstation_demo.json",
             storage_path="data/evidence/workstation_demo.json",
-            timestamp=datetime.fromisoformat(
-                "2026-09-28T10:15:00"
-            ),
-            hash=(
-                "demo-sha256-workstation-001"
-            ),
-            metadata_json=json.dumps({
-                "device": "WORKSTATION-01",
-                "format": "json",
-                "description": "Synthetic workstation activity log",
-            }),
-            acquisition_info=json.dumps({
-                "method": "COVEN demo seed",
-                "collector": "COVEN",
-            }),
-            transformation_history=json.dumps([
+            timestamp=now,
+            hash="demo-sha256-workstation-001",
+            metadata_json=json.dumps(
                 {
-                    "action": "evidence_ingested",
-                    "timestamp": "2026-09-28T10:15:00",
-                },
+                    "synthetic": True,
+                    "scenario": "data_exfiltration",
+                }
+            ),
+            acquisition_info=json.dumps(
                 {
-                    "action": "log_parsed",
-                    "timestamp": "2026-09-28T10:15:01",
-                },
-            ]),
+                    "method": "synthetic_seed",
+                    "operator": "COVEN",
+                }
+            ),
+            transformation_history=[],
             integrity_status="verified",
         )
+        db.add(evidence)
 
-        db.add(demo_evidence)
-
-        # ---------------------------------------------------------
-        # 4. Create normalized events
-        # ---------------------------------------------------------
-
-        demo_events = [
+        events = [
             Event(
                 event_id="EVT-DEMO-001",
-                evidence_id=EVIDENCE_ID,
-                case_id=CASE_ID,
+                evidence_id=evidence_id,
+                case_id=case_id,
                 timestamp=datetime.fromisoformat(
-                    "2026-09-28T10:15:00"
+                    "2026-01-15T10:15:00"
                 ),
                 actor="alice",
                 device="WORKSTATION-01",
@@ -143,14 +137,14 @@ def seed_demo_data():
                 object="system",
                 location="Delhi",
                 source="WORKSTATION_01",
-                confidence=1.0,
+                confidence=0.99,
             ),
             Event(
                 event_id="EVT-DEMO-002",
-                evidence_id=EVIDENCE_ID,
-                case_id=CASE_ID,
+                evidence_id=evidence_id,
+                case_id=case_id,
                 timestamp=datetime.fromisoformat(
-                    "2026-09-28T10:20:00"
+                    "2026-01-15T10:20:00"
                 ),
                 actor="alice",
                 device="WORKSTATION-01",
@@ -158,14 +152,14 @@ def seed_demo_data():
                 object="confidential.pdf",
                 location="Delhi",
                 source="WORKSTATION_01",
-                confidence=1.0,
+                confidence=0.95,
             ),
             Event(
                 event_id="EVT-DEMO-003",
-                evidence_id=EVIDENCE_ID,
-                case_id=CASE_ID,
+                evidence_id=evidence_id,
+                case_id=case_id,
                 timestamp=datetime.fromisoformat(
-                    "2026-09-28T10:25:00"
+                    "2026-01-15T10:25:00"
                 ),
                 actor="alice",
                 device="WORKSTATION-01",
@@ -173,27 +167,16 @@ def seed_demo_data():
                 object="confidential.pdf",
                 location="Delhi",
                 source="WORKSTATION_01",
-                confidence=1.0,
+                confidence=0.93,
             ),
         ]
 
-        db.add_all(demo_events)
-
-        # ---------------------------------------------------------
-        # 5. Commit everything
-        # ---------------------------------------------------------
-
+        db.add_all(events)
         db.commit()
 
-        print()
-        print("COVEN demo data seeded successfully.")
-        print()
-        print(f"Case:     {CASE_ID}")
-        print(f"Evidence: {EVIDENCE_ID}")
-        print("Events:")
-        for event_id in EVENT_IDS:
-            print(f"  - {event_id}")
-        print()
+        print(f"Local demo seeded: {case_id}")
+        print(f"Evidence: {evidence_id}")
+        print(f"Events: {len(events)}")
 
     except Exception:
         db.rollback()
@@ -203,5 +186,88 @@ def seed_demo_data():
         db.close()
 
 
+# ---------------------------------------------------------------------------
+# Per-source API upload
+# ---------------------------------------------------------------------------
+
+def upload_source_datasets():
+    """
+    Upload every per-source synthetic file to a running COVEN backend.
+    """
+
+    response = requests.post(
+        f"{BASE_URL}/cases",
+        data={
+            "name": "Exfiltration Investigation",
+            "investigator": "Shruti",
+            "description": "Seeded demo case for COVEN",
+        },
+    )
+    response.raise_for_status()
+
+    case_id = response.json()["case_id"]
+    print(f"Case created: {case_id}")
+
+    for source, filename in SOURCE_FILES.items():
+        path = SYNTHETIC_DIR / filename
+
+        if not path.exists():
+            raise FileNotFoundError(f"Synthetic dataset not found: {path}")
+
+        with path.open("rb") as file:
+            response = requests.post(
+                f"{BASE_URL}/evidence/upload",
+                data={
+                    "case_id": case_id,
+                    "source": source,
+                },
+                files={
+                    "file": (
+                        filename,
+                        file,
+                        "application/json",
+                    )
+                },
+            )
+
+        response.raise_for_status()
+
+        result = response.json()
+        print(
+            f"  {source}: "
+            f"{result.get('events_created', 0)} events uploaded"
+        )
+
+    print()
+    print(f"Done. Case ID: {case_id}")
+    print("Check results at:")
+    print(f"  {BASE_URL}/cases/{case_id}/contradictions")
+    print(f"  {BASE_URL}/cases/{case_id}/findings")
+    print(f"  {BASE_URL}/cases/{case_id}/hypotheses")
+
+
+# ---------------------------------------------------------------------------
+# CLI
+# ---------------------------------------------------------------------------
+
+def main():
+    if len(sys.argv) < 2:
+        print("Usage:")
+        print("  python scripts/seed_demo_data.py local")
+        print("  python scripts/seed_demo_data.py upload")
+        return
+
+    command = sys.argv[1].lower()
+
+    if command == "local":
+        seed_local_demo()
+    elif command == "upload":
+        upload_source_datasets()
+    else:
+        raise SystemExit(
+            f"Unknown command: {command}. Use 'local' or 'upload'."
+        )
+
+
 if __name__ == "__main__":
-    seed_demo_data()
+    main()
