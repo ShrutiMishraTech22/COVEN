@@ -1,0 +1,10 @@
+[
+  {
+    "timestamp": "2026-09-10T10:04:00Z",
+    "actor": "employee_a",
+    "device": "laptop-01",
+    "action": "network_connect",
+    "object": "203.0.113.5",
+    "location": "Mumbai"
+  }
+]

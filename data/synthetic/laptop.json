@@ -1,0 +1,26 @@
+[
+  {
+    "timestamp": "2026-09-10T09:42:00Z",
+    "actor": "employee_a",
+    "device": "laptop-01",
+    "action": "login",
+    "object": null,
+    "location": "Mumbai"
+  },
+  {
+    "timestamp": "2026-09-10T09:51:00Z",
+    "actor": "employee_a",
+    "device": "laptop-01",
+    "action": "file_access",
+    "object": "confidential.pdf",
+    "location": "Mumbai"
+  },
+  {
+    "timestamp": "2026-09-10T09:58:00Z",
+    "actor": "employee_a",
+    "device": "laptop-01",
+    "action": "archive_create",
+    "object": "archive.zip",
+    "location": "Mumbai"
+  }
+]
